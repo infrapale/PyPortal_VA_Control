@@ -37,10 +37,17 @@ Implementation Notes
 **Software and Dependencies:**
   <https://github.com/infrapale/RetroKeyPad_I2C_Slave>
 
-"""
-import adafruit_bus_device.i2c_device as i2cdevice
-from micropython import const
+  reference code:
+  https://github.com/adafruit/Adafruit_CircuitPython_TLV493D/blob/master/adafruit_tlv493d.py
+  https://github.com/adafruit/Adafruit_CircuitPython_PCF8591/blob/master/adafruit_pcf8591/pcf8591.py
 
+"""
+
+import board
+
+#import adafruit_bus_device.i2c_device as i2cdevice
+from adafruit_bus_device.i2c_device import I2CDevice
+from micropython import const
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/infrapale/PyPortal_VA_Control"
 
@@ -49,26 +56,35 @@ _KEYPAD_I2C_DEFAULT_ADDRESS = const(0x18)
 
 
 class keypad_i2c:
-    """Driver for the I2C 5x5 kkeypad 2020.
+    """
+    Driver for the I2C 5x5 kkeypad 2020.
     :param busio.I2C i2c_bus: The I2C bus the keypad is connected to.
     :param int address: The I2C address of the keypad. Defaults to 0x18.
     """
-
- def __init__(self, i2c_bus, address=_KEYPAD_I2C_DEFAULT_ADDRESS, addr_reg=0):
-        self.i2c_device = i2cdevice.I2CDevice(i2c_bus, address)
-        self.read_buffer = bytearray(10)
+    def __init__(self, i2c_bus, address=_KEYPAD_I2C_DEFAULT_ADDRESS, addr_reg=0):
+        self.i2c_device = I2CDevice(i2c_bus, address)
+        self.read_buffer = bytearray(2)
         self.write_buffer = bytearray(4)
 
-        # read in data from keypad, including data that must be set on a write
-        self._setup_write_buffer()
 
-        # write correct i2c address
-        self._set_write_key("ADDR", addr_reg)
+    def _read_key_dur(self):
+        self.read_buffer[0] = 2
+        self.read_buffer[1] = 0
+        with self.i2c_device as i2c:
+            i2c.write_then_readinto(self.read_buffer, self.read_buffer)
 
-        # setup MASTERCONTROLLEDMODE which takes a measurement for every read
-        self._set_write_key("PARITY", 1)
-        self._set_write_key("PARITY", 1)
-        self._set_write_key("LOWPOWER", 1)
-        self._set_write_key("LP_PERIOD", 1)
-        self._write_i2c()
+    def _read_i2c(self):
+        with self.i2c_device as i2c:
+            i2c.readinto(self.read_buffer)
+    def _write_i2c(self):
+        with self.i2c_device as i2c:
+            i2c.write(self.write_buffer)
+
+
+
+
+    @property
+    def key_pressed(self):
+        self._read_key_dur()
+        return ((self.read_buffer[0],self.read_buffer[1]))
 
