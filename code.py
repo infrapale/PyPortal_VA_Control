@@ -1,6 +1,7 @@
 """
 CircuitPython Demo Program November 2020
 
+https://github.com/infrapale/PyPortal_VA_Control
 HW:
     PyPortal
     I2C KeyPad
